@@ -12,12 +12,23 @@ description: 按参考音色和语速把文字转成语音（TTS），内置并�
 - 核心工具链：`audio_to_audio_plus`（生成）、`mediakit-cli`（抽音轨/人声分离/裁剪/转码）、`FileBatchUpload`（上传参考音频拿标准 URL）。
 - 前提：先按 seed-audio 技能的 A2A 规范归一化参考指代（`@音频1`）；本文只描述工具链执行细节。
 
-## 内置音色资产
+## 内置音色资产（默认音色）
 
 - 默认参考音色已存放在 `assets/company-intro-voice.mp3`（公司介绍视频旁白音色，80 秒纯净人声，含其音色与语速）。
 - **用户没有提供新的参考音频/视频时**：直接用该资产作参考，无需重新上传素材。
 - 使用方式：`FileBatchUpload` 上传 `assets/company-intro-voice.mp3` 拿到标准 URL，作为 `audio_reference_url_list`。
+- 备用参考 URL（已验证可用）：`https://aka.doubaocdn.com/s/N8nZlmZVTq`。仅当本地资产文件缺失或上传失败时使用；若该 URL 失效，重新 `FileBatchUpload` 资产文件即可。
 - 新增音色：把新的 <120s、<10MB 的纯净人声片段放入 `assets/`（如 `assets/my-voice.mp3`），并在下文 Step 2 中改用它；或按 Step 1 从用户新给的视频/音频现场准备。
+
+## 安装与自检（从 GitHub 克隆/下载后）
+
+1. 必须保留完整目录结构，缺 `assets/` 或 `assets/company-intro-voice.mp3` 会导致无法使用默认音色。
+2. 使用前先检查资产是否存在：
+   ```bash
+   ls -la assets/company-intro-voice.mp3
+   ```
+   若缺失，从 GitHub 仓库重新拉取该文件，或直接改用「备用参考 URL」。
+3. 校验文件正常（1.28MB 左右、可播放 mp3）；空文件或损坏文件会导致生成失败或音色异常。
 
 ## 工作流
 
@@ -46,6 +57,7 @@ description: 按参考音色和语速把文字转成语音（TTS），内置并�
 
 - 无新参考：上传内置 `assets/company-intro-voice.mp3`；有新参考：上传 Step 1 产物。
 - 用 `FileBatchUpload` 上传，拿到 `aka.doubaocdn.com` 标准 URL。
+- 上传失败时：改用「内置音色资产」中的备用参考 URL；仍失败则检查本地资产文件是否完整。
 - **不要**直接把 VOD 带 `auth_key` 的临时 URL 传给 `audio_to_audio_plus`——实测会失败。
 
 ## Step 3 生成
@@ -54,6 +66,7 @@ description: 按参考音色和语速把文字转成语音（TTS），内置并�
   - `prompt`：按 A2A 规范，模板为 `使用 @音频1 的音色和语速朗读以下文字："<用户文字原文>"`；**必须包含「音色和语速」字样**，确保保留参考的发音人音色与说话节奏；不改写、不增删用户文字。
   - `audio_reference_url_list`：只放 Step 2 得到的标准 URL（内置资产或新参考）。
   - 不传 `duration`，除非用户明确指定秒数。
+- 生成后抽查验证：试听确认输出音色、语速与参考一致；若不像或异常，先核对参考 URL 是否为该音色文件、prompt 是否含「音色和语速」，再重试。
 
 ## Step 4 交付
 
@@ -66,3 +79,4 @@ description: 按参考音色和语速把文字转成语音（TTS），内置并�
 - 参考音频任一超过 120 秒或总量超过 10MB，`audio_to_audio_plus` 会失败——先裁剪。
 - 若生成失败且非时长/体积问题，重试一次；仍失败则检查参考 URL 是否为标准可访问 URL。
 - 输出文件名以人可读的语义命名（如「主题-内容.mp3」），不放任务 ID。
+
